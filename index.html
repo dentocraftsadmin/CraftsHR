@@ -620,7 +620,7 @@ let calendarDate=new Date(),currentAdminLeaveTab='pending',reportData=[],reportF
 // ============================================================
 const SUPABASE_URL='https://hqlzvdvwpfzdvidysevx.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxbHp2ZHZ3cGZ6ZHZpZHlzZXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NTk1MDksImV4cCI6MjA5NjIzNTUwOX0.aoT_GNT9_lB35Qj7r60kNQFKPK5YtHueq7Oxvs9kczQ';
-const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
 
 // In-memory cache (populated on startup, kept in sync on writes)
 const _cache={staff:[],punches:[],leaves:[],appSettings:{},shifts:[]};
