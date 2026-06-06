@@ -617,13 +617,17 @@ th{letter-spacing:0.07em}
     </div>
     <div id="preview-loc-card" style="display:none">
       <div style="display:flex;align-items:flex-start;gap:10px">
-        <span style="font-size:1.3rem;line-height:1.2">📍</span>
+        <span id="preview-loc-icon" style="font-size:1.3rem;line-height:1.2">📍</span>
         <div style="flex:1;min-width:0">
           <div id="preview-loc-text" style="font-size:0.92rem;font-weight:600;color:#fff;line-height:1.4"></div>
           <a id="preview-loc-map-link" href="#" target="_blank" rel="noopener"
              style="font-size:0.78rem;color:#4ade80;text-decoration:none;margin-top:4px;display:inline-block">
             View on Google Maps ↗
           </a>
+          <button id="preview-loc-retry" onclick="startLocationFetch()"
+            style="display:none;margin-top:8px;background:#f59e0b;color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;width:100%">
+            🔄 Tap here to retry location
+          </button>
         </div>
       </div>
     </div>
@@ -1131,15 +1135,18 @@ document.getElementById('preview-confirm').addEventListener('click',submitPunch)
 function _showLocCard(address, failed){
   document.getElementById('preview-loc-status').style.display='none';
   document.getElementById('preview-loc-text').textContent=address;
+  document.getElementById('preview-loc-icon').textContent=failed?'⚠️':'📍';
+  // Map link — only when we have real coords
   if(capturedLat&&capturedLng){
-    document.getElementById('preview-loc-map-link').href=
-      `https://www.google.com/maps?q=${capturedLat},${capturedLng}`;
+    document.getElementById('preview-loc-map-link').href=`https://www.google.com/maps?q=${capturedLat},${capturedLng}`;
     document.getElementById('preview-loc-map-link').style.display='inline-block';
   }else{
     document.getElementById('preview-loc-map-link').style.display='none';
   }
+  // Retry button — only when failed
+  document.getElementById('preview-loc-retry').style.display=failed?'block':'none';
   document.getElementById('preview-loc-card').style.display='block';
-  // Enable/disable Confirm based on whether we got GPS coords
+  // Confirm button state
   const confirmBtn=document.getElementById('preview-confirm');
   if(failed){
     confirmBtn.disabled=true;
@@ -1180,8 +1187,8 @@ function startLocationFetch(){
     },
     (err)=>{
       const msg=err.code===1
-        ?'⚠️ Location permission denied. Go to phone Settings → allow location for this site, then retake.'
-        :'⚠️ Could not get location. Make sure GPS is on and try again.';
+        ?'Permission denied. On iPhone: Settings → Safari → Location → Allow. On Android: Settings → Apps → Browser → Permissions → Location. Then tap Retry below.'
+        :'Could not get your location. Make sure GPS / Location Services is turned on, then tap Retry below.';
       _showLocCard(msg,true);
     },
     {enableHighAccuracy:true,timeout:15000}
