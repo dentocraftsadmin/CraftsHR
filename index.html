@@ -1583,6 +1583,7 @@ function openEditStaff(id){
       ${[6.5,8,9,10].map(h=>`<option value="${h}" ${s.workingHours===h?'selected':''}>${h} Hours</option>`).join('')}
     </select></div>
     <div class="form-group"><label>Date of Birth</label><input type="date" class="form-input" id="edit-dob" value="${s.dob||''}"></div>
+    <div class="form-group"><label>Date of Joining</label><input type="date" class="form-input" id="edit-joining" value="${s.joiningDate||''}"></div>
     <button class="btn btn-primary w-full mt-2" onclick="saveEditStaff('${id}')">Save Changes</button>`;
   openModal('detail-modal');
 }
@@ -1593,6 +1594,7 @@ function saveEditStaff(id){
   arr[idx].department=document.getElementById('edit-dept').value;
   arr[idx].workingHours=parseFloat(document.getElementById('edit-hours').value);
   arr[idx].dob=document.getElementById('edit-dob').value;
+  arr[idx].joiningDate=document.getElementById('edit-joining').value||arr[idx].joiningDate;
   setStaff(arr);toast('Staff updated','success');closeModal('detail-modal');renderStaffTable();
 }
 
@@ -1614,7 +1616,7 @@ function viewStaffDetail(staffId){
     <div class="card mb-3">
       <div class="punch-row"><span class="punch-label">Phone</span><span>${s.phone}</span></div>
       <div class="punch-row"><span class="punch-label">Department</span><span>${s.department}</span></div>
-      <div class="punch-row"><span class="punch-label">Joined</span><span>${fmtDate(s.createdAt)}</span></div>
+      <div class="punch-row"><span class="punch-label">Joined</span><span>${fmtDate(s.joiningDate||s.createdAt)}</span></div>
       ${s.dob?`<div class="punch-row"><span class="punch-label">Birthday</span><span>${fmtDate(s.dob)}</span></div>`:''}
       <div class="punch-row"><span class="punch-label">Score</span><span>${renderStars(s.score||0)} (${s.score||0}/5)</span></div>
     </div>
