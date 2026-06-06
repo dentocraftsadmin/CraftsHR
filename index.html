@@ -835,12 +835,15 @@ function attemptLoginFromCapture(){
   const inp=document.getElementById('login-pin-capture');
   const pin=inp.value;
   const phone=document.getElementById('login-phone').value.trim();
+  console.log('[CraftsHR] Login attempt — phone:',phone,'pin:',pin,'staffCount:',_cache.staff.length);
   if(phone.length!==10){
     document.getElementById('login-phone-error').textContent='Enter 10-digit phone number';
     document.getElementById('login-phone-error').classList.remove('hidden');
     inp.value='';updateLoginDots();return;
   }
-  if(!doLogin(phone,pin)){
+  const result=doLogin(phone,pin);
+  console.log('[CraftsHR] doLogin result:',result);
+  if(!result){
     const card=document.querySelector('.login-card');
     card.classList.add('shake');setTimeout(()=>card.classList.remove('shake'),400);
     const err=document.getElementById('login-error');
@@ -2017,11 +2020,31 @@ document.getElementById('login-phone').addEventListener('input',function(){
   }
 });
 
-// Hidden PIN capture input — keyboard digits flow naturally here
+// Hidden PIN capture input — keyboard digits flow here when it has focus
 document.getElementById('login-pin-capture').addEventListener('input',function(){
   this.value=this.value.replace(/\D/g,'').slice(0,4);
   updateLoginDots();
   if(this.value.length===4)attemptLoginFromCapture();
+});
+
+// Keydown fallback — works even if focus() didn't take; routes keys to PIN
+// whenever the login page is active and phone is complete
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('login-page').classList.contains('active'))return;
+  if(document.activeElement===document.getElementById('login-phone'))return;
+  const phone=document.getElementById('login-phone').value;
+  if(phone.length!==10)return; // phone not complete yet — don't intercept
+  const cap=document.getElementById('login-pin-capture');
+  if(document.activeElement===cap)return; // hidden input is focused — browser handles it
+  if(e.key>='0'&&e.key<='9'){
+    e.preventDefault();
+    console.log('[CraftsHR] keydown fallback — key:',e.key,'cap.value before:',cap.value);
+    if(cap.value.length<4){cap.value+=e.key;updateLoginDots();}
+    if(cap.value.length===4)attemptLoginFromCapture();
+  }else if(e.key==='Backspace'){
+    e.preventDefault();
+    cap.value=cap.value.slice(0,-1);updateLoginDots();
+  }
 });
 
 document.getElementById('su-phone').addEventListener('input',function(){
