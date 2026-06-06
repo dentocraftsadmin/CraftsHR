@@ -315,7 +315,7 @@ th{letter-spacing:0.07em}
       <div class="numpad" id="login-numpad"></div>
       <div class="field-error hidden" id="login-error"></div>
     </div>
-    <button class="btn btn-primary w-full mt-3" id="login-btn">Login</button>
+    <div style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:12px;font-weight:500" id="login-btn">Enter your phone number and 4-digit PIN above</div>
     <div class="mt-3" style="text-align:center">
       <button class="btn btn-ghost text-sm" id="goto-signup">New staff? Register here →</button>
     </div>
@@ -829,14 +829,21 @@ function checkSession(){
 // LOGIN UI
 // ============================================================
 function buildLoginNumpad(){
+  window._loginPin='';
   buildNumpad('login-numpad','pd',(pin,reset)=>{
+    window._loginPin=pin;
     const phone=document.getElementById('login-phone').value.trim();
-    if(phone.length!==10){toast('Enter 10-digit phone number','error');reset();return;}
+    if(phone.length!==10){
+      document.getElementById('login-phone-error').textContent='Enter 10-digit phone number';
+      document.getElementById('login-phone-error').classList.remove('hidden');
+      reset();window._loginPin='';return;
+    }
     if(!doLogin(phone,pin)){
       const card=document.querySelector('.login-card');
       card.classList.add('shake');setTimeout(()=>card.classList.remove('shake'),400);
       const err=document.getElementById('login-error');
-      err.textContent='Incorrect phone or PIN. Try again.';err.classList.remove('hidden');reset();
+      err.textContent='Incorrect phone or PIN. Try again.';err.classList.remove('hidden');
+      reset();window._loginPin='';
     }
   });
 }
@@ -845,7 +852,18 @@ document.getElementById('login-btn').addEventListener('click',()=>{
   const phone=document.getElementById('login-phone').value.trim();
   const err=document.getElementById('login-phone-error');
   if(!/^\d{10}$/.test(phone)){err.textContent='Enter valid 10-digit number';err.classList.remove('hidden');return;}
-  err.classList.add('hidden');toast('Enter your PIN','info');
+  err.classList.add('hidden');
+  // If PIN already entered via keyboard, attempt login immediately
+  if(window._loginPin&&window._loginPin.length===4){
+    const success=doLogin(phone,window._loginPin);
+    if(!success){
+      const card=document.querySelector('.login-card');
+      card.classList.add('shake');setTimeout(()=>card.classList.remove('shake'),400);
+      document.getElementById('login-error').textContent='Incorrect phone or PIN.';
+      document.getElementById('login-error').classList.remove('hidden');
+      window._loginPin='';document.getElementById('login-numpad')._reset?.();
+    }
+  }
 });
 document.getElementById('goto-signup').addEventListener('click',()=>{showPage('signup-page');renderSignupShifts();});
 document.getElementById('back-to-login').addEventListener('click',()=>showPage('login-page'));
