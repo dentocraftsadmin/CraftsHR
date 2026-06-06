@@ -167,6 +167,10 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 .toggle.on::after{left:25px}
 .page{animation:fadeIn 0.2s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+/* Brand logo — swaps to white version in dark mode */
+img.brand-logo{display:block}
+[data-theme="dark"] img.brand-logo{filter:brightness(0) invert(1)}
+
 [data-theme="dark"]{--text:#e2e8f0;--text-muted:#94a3b8;--border:#2d3748;--bg:#0f172a;--card:#1e293b;--primary-light:rgba(29,158,117,0.15);--shadow:0 2px 12px rgba(0,0,0,0.3)}
 [data-theme="dark"] .numpad-btn{background:#263144;border-color:#2d3748;color:#e2e8f0}
 [data-theme="dark"] .numpad-btn:active{background:rgba(29,158,117,0.2)}
@@ -261,7 +265,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 <body>
 <!-- Loading Overlay -->
 <div id="app-loading" style="position:fixed;inset:0;background:var(--bg);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-  <div style="font-size:3rem">🦷</div>
+  <img src="logo.png" class="brand-logo" alt="DentoCrafts" style="width:160px;height:auto;margin-bottom:8px">
   <div class="spinner" style="width:32px;height:32px;border-width:3px"></div>
   <div style="color:var(--text-muted);font-size:0.9rem">Connecting to database…</div>
 </div>
@@ -272,8 +276,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 <div id="login-page" class="page active">
   <div class="login-card">
     <div class="login-logo">
-      <div class="logo-icon"><img src="logo.png" alt="DentoCrafts" style="width:180px;height:auto;display:block;margin:0 auto"></div>
-      <h1 id="login-company-name">CraftsHR</h1>
+      <div class="logo-icon"><img src="logo.png" class="brand-logo" alt="DentoCrafts" style="width:200px;height:auto;display:block;margin:0 auto"></div>
       <p>Sign in to continue</p>
     </div>
     <div class="form-group">
@@ -301,7 +304,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 <div id="signup-page" class="page">
   <div class="signup-header">
     <button class="btn btn-ghost" id="back-to-login">← Back</button>
-    <h2 style="font-size:1.2rem;font-weight:700">Staff Registration</h2>
+    <img src="logo.png" class="brand-logo" alt="DentoCrafts" style="height:28px;width:auto">
   </div>
   <div class="card">
     <div class="form-group">
@@ -424,7 +427,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
   <div id="admin-layout">
     <div class="admin-sidebar">
       <div class="admin-sidebar-brand">
-        <h2>🦷 CraftsHR</h2>
+        <img src="logo.png" class="brand-logo" alt="DentoCrafts" style="width:140px;height:auto;display:block;margin-bottom:4px">
         <p id="admin-sidebar-tagline">Attendance System</p>
       </div>
       <nav class="admin-sidebar-nav" id="admin-sidebar-nav">
