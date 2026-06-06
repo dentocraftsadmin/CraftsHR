@@ -1993,8 +1993,14 @@ function loadAndApplyPrefs(){const sess=getSession();if(sess){const prefs=getUse
 // ============================================================
 buildLoginNumpad();
 buildNumpad('su-numpad','spd',(pin,reset)=>{window._suPin=pin;});
-document.getElementById('login-phone').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'');});
-document.getElementById('su-phone').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'');});
+document.getElementById('login-phone').addEventListener('input',function(){
+  this.value=this.value.replace(/\D/g,'');
+  if(this.value.length===10)this.blur(); // auto-unfocus so keyboard goes to PIN
+});
+document.getElementById('su-phone').addEventListener('input',function(){
+  this.value=this.value.replace(/\D/g,'');
+  if(this.value.length===10)this.blur();
+});
 
 // Load Supabase cache then start app
 (async()=>{
