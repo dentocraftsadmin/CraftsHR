@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CraftsHR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +13,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;-webkit-tap-highlight-color:transparent}
 body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-button{cursor:pointer;border:none;outline:none;font-family:inherit}
+button{cursor:pointer;border:none;outline:none;font-family:inherit;touch-action:manipulation}
 input,select,textarea{font-family:inherit;outline:none}
 a{text-decoration:none;color:inherit}
 img{max-width:100%;display:block}
@@ -52,7 +52,7 @@ img{max-width:100%;display:block}
 .pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border);transition:background var(--transition)}
 .pin-dot.filled{background:var(--primary)}
 .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-.numpad-btn{height:64px;border-radius:14px;background:var(--bg);font-size:1.4rem;font-weight:600;color:var(--text);border:2px solid var(--border);transition:all var(--transition);display:flex;align-items:center;justify-content:center;flex-direction:column}
+.numpad-btn{height:64px;border-radius:14px;background:var(--bg);font-size:1.4rem;font-weight:600;color:var(--text);border:2px solid var(--border);transition:all var(--transition);display:flex;align-items:center;justify-content:center;flex-direction:column;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .numpad-btn:active{transform:scale(0.95);background:var(--primary-light);border-color:var(--primary)}
 .numpad-btn .sub{font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:1px}
 .numpad-btn.delete{background:var(--bg);color:var(--danger)}
