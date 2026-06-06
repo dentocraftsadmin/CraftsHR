@@ -1012,6 +1012,12 @@ document.getElementById('signup-btn').addEventListener('click',()=>{
 // ============================================================
 let clockInterval=null;
 
+function requestAppPermissions(){
+  // Trigger location permission prompt early so it's ready when punching
+  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(()=>{},()=>{},{maximumAge:60000,timeout:5000});
+  // Camera permission is triggered when the camera opens — nothing to pre-request here
+}
+
 function loadStaffDashboard(staff){
   document.getElementById('staff-header-name').textContent=staff.name;
   document.getElementById('staff-header-dept').textContent=staff.department;
@@ -1019,6 +1025,7 @@ function loadStaffDashboard(staff){
   const n2=document.getElementById('staff-header-name2');if(n2)n2.textContent=staff.name.split(' ')[0];
   document.getElementById('dash-name').textContent=`Hi, ${staff.name.split(' ')[0]}! 👋`;
   loadAndApplyPrefs();
+  requestAppPermissions(); // ask for location permission as soon as they log in
   if(staff.score>0){
     document.getElementById('score-display-card').classList.remove('hidden');
     document.getElementById('staff-score-stars').innerHTML=`${renderStars(staff.score)} <span style="color:var(--text-muted);font-size:0.8rem">(${staff.score}/5)</span>`;
@@ -1110,15 +1117,18 @@ function showPreview(dataUrl){
   document.getElementById('preview-img').src=dataUrl;
   document.getElementById('preview-title').textContent=punchType==='in'?'Confirm Punch In':'Confirm Punch Out';
   document.getElementById('preview-container').classList.add('active');
-  document.getElementById('preview-loc-status').classList.remove('hidden');
-  document.getElementById('preview-loc-text').textContent='';
   capturedLocation=null;capturedLat=null;capturedLng=null;
+  // Disable Confirm until location arrives
+  const confirmBtn=document.getElementById('preview-confirm');
+  confirmBtn.disabled=true;
+  confirmBtn.style.opacity='0.5';
+  confirmBtn.textContent='Getting location…';
 }
 
 document.getElementById('preview-retake').addEventListener('click',()=>{document.getElementById('preview-container').classList.remove('active');openCamera();});
 document.getElementById('preview-confirm').addEventListener('click',submitPunch);
 
-function _showLocCard(address){
+function _showLocCard(address, failed){
   document.getElementById('preview-loc-status').style.display='none';
   document.getElementById('preview-loc-text').textContent=address;
   if(capturedLat&&capturedLng){
@@ -1129,6 +1139,17 @@ function _showLocCard(address){
     document.getElementById('preview-loc-map-link').style.display='none';
   }
   document.getElementById('preview-loc-card').style.display='block';
+  // Enable/disable Confirm based on whether we got GPS coords
+  const confirmBtn=document.getElementById('preview-confirm');
+  if(failed){
+    confirmBtn.disabled=true;
+    confirmBtn.style.opacity='0.5';
+    confirmBtn.textContent='Location required';
+  }else{
+    confirmBtn.disabled=false;
+    confirmBtn.style.opacity='1';
+    confirmBtn.textContent='✓ Confirm';
+  }
 }
 
 function startLocationFetch(){
@@ -1137,35 +1158,43 @@ function startLocationFetch(){
   document.getElementById('preview-loc-card').style.display='none';
 
   if(!navigator.geolocation){
-    capturedLocation='Location unavailable';
-    _showLocCard('Location not available on this device');return;
+    _showLocCard('⚠️ Location not supported on this device — punch blocked',true);return;
   }
   navigator.geolocation.getCurrentPosition(
     pos=>{
       capturedLat=pos.coords.latitude;capturedLng=pos.coords.longitude;
-      // Show coords immediately while address loads
-      _showLocCard(`${capturedLat.toFixed(5)}, ${capturedLng.toFixed(5)} — Loading address…`);
+      // Show coords immediately while address reverse-geocodes
+      _showLocCard(`${capturedLat.toFixed(5)}, ${capturedLng.toFixed(5)} — Loading address…`,false);
       fetch(`https://nominatim.openstreetmap.org/reverse?lat=${capturedLat}&lon=${capturedLng}&format=json`)
         .then(r=>r.json())
         .then(d=>{
-          // Build a clean short address from parts
           const a=d.address||{};
           const parts=[a.road,a.suburb||a.neighbourhood,a.city||a.town||a.village,a.state].filter(Boolean);
           capturedLocation=parts.length?parts.join(', '):d.display_name||`${capturedLat.toFixed(5)},${capturedLng.toFixed(5)}`;
-          _showLocCard(capturedLocation);
+          _showLocCard(capturedLocation,false);
         })
         .catch(()=>{
           capturedLocation=`${capturedLat.toFixed(5)}, ${capturedLng.toFixed(5)}`;
-          _showLocCard(capturedLocation);
+          _showLocCard(capturedLocation,false);
         });
     },
-    ()=>{capturedLocation='Could not get location';_showLocCard('Could not get location — please enable GPS');},
-    {enableHighAccuracy:true,timeout:10000}
+    (err)=>{
+      const msg=err.code===1
+        ?'⚠️ Location permission denied. Go to phone Settings → allow location for this site, then retake.'
+        :'⚠️ Could not get location. Make sure GPS is on and try again.';
+      _showLocCard(msg,true);
+    },
+    {enableHighAccuracy:true,timeout:15000}
   );
 }
 
 function submitPunch(){
   const sess=getSession();if(!sess)return;
+  // Hard block — location coordinates are mandatory
+  if(!capturedLat||!capturedLng){
+    toast('Location is required to punch. Please enable GPS and retake.','error',4000);
+    return;
+  }
   const today=todayStr(),now=new Date().toISOString(),settings=getSettings();
   const appS=getAppSettings();
 
