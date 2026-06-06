@@ -598,7 +598,7 @@ th{letter-spacing:0.07em}
     <div style="font-size:3rem;margin-bottom:12px">📍📷</div>
     <div style="font-weight:800;font-size:1.15rem;margin-bottom:10px;color:#1a1a2e">Allow Camera & Location</div>
     <div style="font-size:0.9rem;color:#6b7280;line-height:1.6;margin-bottom:20px">
-      This app needs your <b>Camera</b> and <b>Location</b> to record your attendance.<br><br>
+      <b>The punch interface will not open</b> until you allow both Camera and Location.<br><br>
       When your phone asks permission, please select:<br><br>
       <div style="background:#f0fdf4;border-radius:10px;padding:12px;margin-bottom:8px;color:#166534;font-weight:700;font-size:0.95rem">
         ✅ "Always Allow" or<br>"Allow While Using"
@@ -608,6 +608,25 @@ th{letter-spacing:0.07em}
     </div>
     <button id="perm-rationale-ok" style="width:100%;padding:14px;background:#1D9E75;color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700">
       Got it — Continue
+    </button>
+  </div>
+</div>
+
+<!-- Location Gate (shown when location is not yet allowed) -->
+<div id="loc-gate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:8400;padding:24px">
+<style>#loc-gate.active{display:flex!important;align-items:center;justify-content:center}</style>
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center">
+    <div id="loc-gate-icon" style="font-size:3rem;margin-bottom:12px">📍</div>
+    <div id="loc-gate-title" style="font-weight:800;font-size:1.15rem;margin-bottom:10px;color:#1a1a2e">Location Required</div>
+    <div id="loc-gate-body" style="font-size:0.9rem;color:#6b7280;line-height:1.6;margin-bottom:20px"></div>
+    <button id="loc-gate-retry" style="width:100%;padding:14px;background:#1D9E75;color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;margin-bottom:10px;display:none">
+      🔄 Try Again
+    </button>
+    <a id="loc-gate-settings" href="#" style="display:none;width:100%;padding:14px;background:#3b82f6;color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;text-decoration:none;box-sizing:border-box">
+      ⚙️ Open Settings
+    </a>
+    <button id="loc-gate-cancel" style="width:100%;padding:12px;background:transparent;color:#9ca3af;border:1px solid #e5e7eb;border-radius:12px;font-size:0.9rem;margin-top:10px">
+      Cancel
     </button>
   </div>
 </div>
@@ -1097,13 +1116,66 @@ document.getElementById('punch-out-btn').addEventListener('click',()=>startPunch
 function startPunch(type){
   punchType=type;
   document.getElementById('camera-title').textContent=type==='in'?'Punch In — Take Selfie':'Punch Out — Take Selfie';
-  // Show one-time permission rationale if permissions haven't been granted yet
-  if(!localStorage.getItem('hrp_perms_ok')){
-    showPermissionRationale();
-  } else {
-    openCamera();
-  }
+  _checkLocGate();
 }
+
+function _checkLocGate(){
+  if(!navigator.geolocation){
+    _showLocGate('unsupported');return;
+  }
+  // Show spinner in gate while we probe
+  _showLocGate('checking');
+  navigator.geolocation.getCurrentPosition(
+    ()=>{
+      // Location granted — close gate and proceed to camera
+      _hideLocGate();
+      if(!localStorage.getItem('hrp_perms_ok')){showPermissionRationale();}else{openCamera();}
+    },
+    err=>{
+      if(err.code===1){_showLocGate('denied');}else{_showLocGate('unavailable');}
+    },
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+  );
+}
+
+function _showLocGate(state){
+  const gate=document.getElementById('loc-gate');
+  const icon=document.getElementById('loc-gate-icon');
+  const title=document.getElementById('loc-gate-title');
+  const body=document.getElementById('loc-gate-body');
+  const retryBtn=document.getElementById('loc-gate-retry');
+  const settingsLink=document.getElementById('loc-gate-settings');
+  retryBtn.style.display='none';settingsLink.style.display='none';
+  if(state==='checking'){
+    icon.textContent='⏳';title.textContent='Checking Location…';
+    body.textContent='Please wait while we verify location access.';
+  } else if(state==='denied'){
+    icon.textContent='🚫';title.textContent='Location Access Denied';
+    const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    body.innerHTML=isIOS
+      ?'The punch interface <b>will not open</b> without location.<br><br>To fix:<br><b>Settings → Privacy → Location Services → Safari → Allow While Using App</b>'
+      :'The punch interface <b>will not open</b> without location.<br><br>Tap the lock icon in your browser address bar and allow Location, then tap Try Again.';
+    settingsLink.href=isIOS?'app-settings:':'#';
+    settingsLink.textContent=isIOS?'⚙️ Open iPhone Settings':'⚙️ Browser Settings';
+    settingsLink.style.display='block';
+    retryBtn.style.display='block';
+  } else if(state==='unavailable'){
+    icon.textContent='📡';title.textContent='Location Unavailable';
+    body.textContent='Could not get your location. Make sure Location Services / GPS is turned on, then tap Try Again.';
+    retryBtn.style.display='block';
+  } else if(state==='unsupported'){
+    icon.textContent='⚠️';title.textContent='Location Not Supported';
+    body.textContent='This device or browser does not support location. Punching is not possible.';
+  }
+  gate.classList.add('active');
+}
+
+function _hideLocGate(){
+  document.getElementById('loc-gate').classList.remove('active');
+}
+
+document.getElementById('loc-gate-retry').addEventListener('click',()=>{_checkLocGate();});
+document.getElementById('loc-gate-cancel').addEventListener('click',()=>{_hideLocGate();});
 
 function showPermissionRationale(){
   document.getElementById('perm-rationale').classList.add('active');
