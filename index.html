@@ -1989,8 +1989,8 @@ function factoryReset(){const code=prompt('Type RESET to confirm:');if(code!=='R
 // ============================================================
 // THEME / PREFERENCES
 // ============================================================
-function getUserPrefs(userId){return DB.getObj('hrp_prefs_'+userId,{theme:'system',accent:'teal',fontSize:'md',compact:false});}
-function setUserPrefs(userId,prefs){DB.set('hrp_prefs_'+userId,prefs);}
+function getUserPrefs(userId){try{return JSON.parse(localStorage.getItem('hrp_prefs_'+userId))||{theme:'system',accent:'teal',fontSize:'md',compact:false};}catch(e){return{theme:'system',accent:'teal',fontSize:'md',compact:false};}}
+function setUserPrefs(userId,prefs){localStorage.setItem('hrp_prefs_'+userId,JSON.stringify(prefs));}
 function applyTheme(theme){if(theme==='dark')document.documentElement.setAttribute('data-theme','dark');else if(theme==='light')document.documentElement.removeAttribute('data-theme');else{if(window.matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');}}
 function applyPrefs(prefs){
   applyTheme(prefs.theme||'system');
