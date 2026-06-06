@@ -301,23 +301,30 @@ th{letter-spacing:0.07em}
       <div class="logo-icon"><img src="logo.png" class="brand-logo" alt="DentoCrafts" style="width:200px;height:auto;display:block;margin:0 auto"></div>
       <p>Sign in to continue</p>
     </div>
-    <div class="form-group">
-      <label>Mobile Number</label>
-      <input type="tel" id="login-phone" class="form-input" placeholder="10-digit number" maxlength="10" inputmode="numeric">
+
+    <!-- Step 1: Phone number display (no native input) -->
+    <div class="form-group" id="login-phone-group">
+      <label id="login-step-label">Mobile Number</label>
+      <div id="login-phone-display" style="padding:14px 16px;border:2px solid var(--primary);border-radius:10px;font-size:1.15rem;font-weight:700;letter-spacing:3px;color:var(--text);background:var(--bg);min-height:52px;display:flex;align-items:center">
+        <span id="login-phone-text" style="color:var(--text-muted);font-size:0.9rem;font-weight:400;letter-spacing:0">Enter 10-digit mobile number</span>
+      </div>
       <div class="field-error hidden" id="login-phone-error"></div>
     </div>
-    <div class="form-group">
+
+    <!-- Step 2: PIN dots (hidden until phone done) -->
+    <div class="form-group hidden" id="login-pin-group">
       <label>PIN</label>
       <div class="pin-display" id="login-pin-display">
         <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
         <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
       </div>
-      <div class="numpad" id="login-numpad"></div>
-      <!-- Hidden input captures keyboard digits for PIN -->
-      <input type="tel" id="login-pin-capture" inputmode="numeric" maxlength="4" autocomplete="off" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
       <div class="field-error hidden" id="login-error"></div>
     </div>
-    <div style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:12px;font-weight:500" id="login-btn">Enter your phone number and 4-digit PIN above</div>
+
+    <!-- Single numpad for both phone and PIN -->
+    <div class="numpad" id="login-numpad"></div>
+
+    <div style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:8px;font-weight:500" id="login-hint">Use the keypad above to enter your number</div>
     <div class="mt-3" style="text-align:center">
       <button class="btn btn-ghost text-sm" id="goto-signup">New staff? Register here →</button>
     </div>
@@ -823,63 +830,109 @@ function checkSession(){
 }
 
 // ============================================================
-// LOGIN UI
+// LOGIN UI — single numpad, no native keyboard
 // ============================================================
-// updateLoginDots — syncs pin-dot visuals to the hidden capture input
-function updateLoginDots(){
-  const v=document.getElementById('login-pin-capture').value;
-  for(let i=0;i<4;i++){const d=document.getElementById('pd'+i);if(d)d.className='pin-dot'+(i<v.length?' filled':'');}
+// Login state: 'phone' → entering 10-digit number, 'pin' → entering 4-digit PIN
+let _loginPhone='', _loginPinVal='', _loginState='phone';
+
+function _loginUpdateDisplay(){
+  // Phone display
+  const phoneTxt=document.getElementById('login-phone-text');
+  const phoneDisp=document.getElementById('login-phone-display');
+  if(_loginPhone.length===0){
+    phoneTxt.textContent='Enter 10-digit mobile number';
+    phoneTxt.style.cssText='color:var(--text-muted);font-size:0.9rem;font-weight:400;letter-spacing:0';
+    phoneDisp.style.borderColor='var(--border)';
+  } else {
+    // Format as groups: 88 7994 4602
+    const p=_loginPhone;
+    const fmt=p.length<=2?p:p.length<=6?p.slice(0,2)+' '+p.slice(2):p.slice(0,2)+' '+p.slice(2,6)+' '+p.slice(6);
+    phoneTxt.textContent=fmt;
+    phoneTxt.style.cssText='color:var(--text);font-size:1.15rem;font-weight:700;letter-spacing:3px';
+    phoneDisp.style.borderColor=_loginState==='phone'?'var(--primary)':'var(--border)';
+  }
+  // PIN dots
+  for(let i=0;i<4;i++){const d=document.getElementById('pd'+i);if(d)d.className='pin-dot'+(i<_loginPinVal.length?' filled':'');}
+  // Show/hide PIN section
+  const pinGroup=document.getElementById('login-pin-group');
+  if(_loginState==='pin'){
+    pinGroup.classList.remove('hidden');
+    document.getElementById('login-phone-display').style.borderColor='var(--border)';
+    document.getElementById('login-hint').textContent='Enter your 4-digit PIN';
+  } else {
+    pinGroup.classList.add('hidden');
+    document.getElementById('login-hint').textContent='Use the keypad above to enter your number';
+  }
+  document.getElementById('login-phone-error').classList.add('hidden');
+  document.getElementById('login-error').classList.add('hidden');
 }
 
-function attemptLoginFromCapture(){
-  const inp=document.getElementById('login-pin-capture');
-  const pin=inp.value;
-  const phone=document.getElementById('login-phone').value.trim();
-  console.log('[CraftsHR] Login attempt — phone:',phone,'pin:',pin,'staffCount:',_cache.staff.length);
-  if(phone.length!==10){
-    document.getElementById('login-phone-error').textContent='Enter 10-digit phone number';
-    document.getElementById('login-phone-error').classList.remove('hidden');
-    inp.value='';updateLoginDots();return;
+function _loginPressKey(k){
+  if(_loginState==='phone'){
+    if(k==='⌫'){
+      _loginPhone=_loginPhone.slice(0,-1);
+    } else if(_loginPhone.length<10){
+      _loginPhone+=k;
+      if(_loginPhone.length===10){
+        // Auto-advance to PIN
+        _loginState='pin';
+        _loginPinVal='';
+      }
+    }
+  } else {
+    if(k==='⌫'){
+      if(_loginPinVal.length===0){
+        // Backspace on empty PIN → go back to editing phone
+        _loginState='phone';
+        _loginPhone=_loginPhone.slice(0,-1);
+      } else {
+        _loginPinVal=_loginPinVal.slice(0,-1);
+      }
+    } else if(_loginPinVal.length<4){
+      _loginPinVal+=k;
+      if(_loginPinVal.length===4){
+        _loginUpdateDisplay();
+        // Attempt login
+        const result=doLogin(_loginPhone,_loginPinVal);
+        if(!result){
+          const card=document.querySelector('.login-card');
+          card.classList.add('shake');setTimeout(()=>card.classList.remove('shake'),400);
+          const err=document.getElementById('login-error');
+          err.textContent='Incorrect phone or PIN. Try again.';err.classList.remove('hidden');
+          _loginPinVal='';
+          _loginUpdateDisplay();
+        }
+        return;
+      }
+    }
   }
-  const result=doLogin(phone,pin);
-  console.log('[CraftsHR] doLogin result:',result);
-  if(!result){
-    const card=document.querySelector('.login-card');
-    card.classList.add('shake');setTimeout(()=>card.classList.remove('shake'),400);
-    const err=document.getElementById('login-error');
-    err.textContent='Incorrect phone or PIN. Try again.';err.classList.remove('hidden');
-    inp.value='';updateLoginDots();
-  }
+  _loginUpdateDisplay();
 }
 
 function buildLoginNumpad(){
+  _loginPhone='';_loginPinVal='';_loginState='phone';
+  _loginUpdateDisplay();
   const container=document.getElementById('login-numpad');
   container.innerHTML='';
   const keys=['1','2','3','4','5','6','7','8','9','','0','⌫'];
   const SUBS={2:'ABC',3:'DEF',4:'GHI',5:'JKL',6:'MNO',7:'PQRS',8:'TUV',9:'WXYZ'};
-
-  // On-screen numpad buttons update the hidden capture input directly
-  function pressKey(k){
-    const inp=document.getElementById('login-pin-capture');
-    if(k==='⌫'){inp.value=inp.value.slice(0,-1);}
-    else if(inp.value.length<4){inp.value+=k;}
-    updateLoginDots();
-    if(inp.value.length===4)attemptLoginFromCapture();
-  }
-
   keys.forEach(k=>{
     const btn=document.createElement('button');
     btn.className='numpad-btn'+(k==='⌫'?' delete':'');
     if(!k){btn.style.visibility='hidden';btn.disabled=true;}
     else if(SUBS[k])btn.innerHTML=`${k}<span class="sub">${SUBS[k]}</span>`;
     else btn.textContent=k||'';
-    if(k)btn.addEventListener('click',()=>pressKey(k));
+    if(k)btn.addEventListener('click',()=>_loginPressKey(k));
     container.appendChild(btn);
   });
-
-  // Reset helper
-  document.getElementById('login-pin-capture').value='';
-  updateLoginDots();
+  // Keyboard support (desktop)
+  if(window._loginKH)document.removeEventListener('keydown',window._loginKH);
+  window._loginKH=function(e){
+    if(!document.getElementById('login-page').classList.contains('active'))return;
+    if(e.key>='0'&&e.key<='9'){e.preventDefault();_loginPressKey(e.key);}
+    else if(e.key==='Backspace'){e.preventDefault();_loginPressKey('⌫');}
+  };
+  document.addEventListener('keydown',window._loginKH);
 }
 
 document.getElementById('goto-signup').addEventListener('click',()=>{showPage('signup-page');renderSignupShifts();});
@@ -2010,42 +2063,6 @@ function loadAndApplyPrefs(){const sess=getSession();if(sess){const prefs=getUse
 // ============================================================
 buildLoginNumpad();
 buildNumpad('su-numpad','spd',(pin,reset)=>{window._suPin=pin;});
-
-// Phone field — strip non-digits; at 10 digits hand off focus to hidden PIN capture
-document.getElementById('login-phone').addEventListener('input',function(){
-  this.value=this.value.replace(/\D/g,'');
-  if(this.value.length===10){
-    this.blur();
-    document.getElementById('login-pin-capture').focus();
-  }
-});
-
-// Hidden PIN capture input — keyboard digits flow here when it has focus
-document.getElementById('login-pin-capture').addEventListener('input',function(){
-  this.value=this.value.replace(/\D/g,'').slice(0,4);
-  updateLoginDots();
-  if(this.value.length===4)attemptLoginFromCapture();
-});
-
-// Keydown fallback — works even if focus() didn't take; routes keys to PIN
-// whenever the login page is active and phone is complete
-document.addEventListener('keydown',function(e){
-  if(!document.getElementById('login-page').classList.contains('active'))return;
-  if(document.activeElement===document.getElementById('login-phone'))return;
-  const phone=document.getElementById('login-phone').value;
-  if(phone.length!==10)return; // phone not complete yet — don't intercept
-  const cap=document.getElementById('login-pin-capture');
-  if(document.activeElement===cap)return; // hidden input is focused — browser handles it
-  if(e.key>='0'&&e.key<='9'){
-    e.preventDefault();
-    console.log('[CraftsHR] keydown fallback — key:',e.key,'cap.value before:',cap.value);
-    if(cap.value.length<4){cap.value+=e.key;updateLoginDots();}
-    if(cap.value.length===4)attemptLoginFromCapture();
-  }else if(e.key==='Backspace'){
-    e.preventDefault();
-    cap.value=cap.value.slice(0,-1);updateLoginDots();
-  }
-});
 
 document.getElementById('su-phone').addEventListener('input',function(){
   this.value=this.value.replace(/\D/g,'');
