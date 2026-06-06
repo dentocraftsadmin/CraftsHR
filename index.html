@@ -2128,6 +2128,10 @@ function buildAppSection(){
     <div class="form-group"><label>Longitude</label><input type="number" class="form-input" id="as-lng" value="${s.officeLng||''}" placeholder="e.g. 72.8777" step="0.0001" onchange="saveAppSetting('officeLng',this.value)"></div>
     <div class="form-group"><label>Radius (meters)</label><input type="number" class="form-input" value="${s.officeRadius||200}" min="50" max="2000" onchange="saveAppSetting('officeRadius',parseInt(this.value))"></div>
     <button class="btn btn-outline mb-3" onclick="detectAdminLocation()">📍 Detect My Location</button>
+    <div id="as-location-preview" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:0.85rem;color:var(--text-muted)">
+      <div style="font-weight:600;color:var(--text);margin-bottom:2px">📍 Detected Address</div>
+      <div id="as-location-address"></div>
+    </div>
     <h4>Attendance Rules</h4>
     <div class="form-group"><label>Work Start Time</label><input type="time" class="form-input" value="${s.workStartTime||'09:30'}" onchange="saveAppSetting('workStartTime',this.value)"></div>
     <div class="form-group"><label>Grace Period (minutes)</label><input type="number" class="form-input" value="${s.graceMinutes||0}" min="0" max="60" onchange="saveAppSetting('graceMinutes',parseInt(this.value))"></div>
@@ -2161,12 +2165,22 @@ function saveAppSetting(key,val){const s=getAppSettings();s[key]=val;setAppSetti
 function detectAdminLocation(){
   if(!navigator.geolocation){toast('Geolocation not supported','error');return;}
   toast('Detecting location...','info');
-  navigator.geolocation.getCurrentPosition(pos=>{
+  navigator.geolocation.getCurrentPosition(async pos=>{
     const lat=pos.coords.latitude.toFixed(6),lng=pos.coords.longitude.toFixed(6);
     saveAppSetting('officeLat',lat);saveAppSetting('officeLng',lng);
-    document.getElementById('as-lat').value=lat;document.getElementById('as-lng').value=lng;
+    const latEl=document.getElementById('as-lat'),lngEl=document.getElementById('as-lng');
+    if(latEl)latEl.value=lat;
+    if(lngEl)lngEl.value=lng;
     toast('Location detected!','success');
-  },()=>toast('Could not get location','error'),{enableHighAccuracy:true});
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const d=await r.json();
+      const addr=d.display_name||`${lat}, ${lng}`;
+      const preview=document.getElementById('as-location-preview');
+      const addrEl=document.getElementById('as-location-address');
+      if(preview&&addrEl){addrEl.textContent=addr;preview.style.display='block';}
+    }catch(e){/* address lookup failed silently */}
+  },()=>toast('Could not get location','error'),{enableHighAccuracy:true,timeout:10000});
 }
 
 // ---- Holidays Settings ----
