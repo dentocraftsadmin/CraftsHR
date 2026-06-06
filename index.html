@@ -789,22 +789,13 @@ function buildNumpad(containerId,displayPrefix,onComplete){
     container.appendChild(btn);
   });
   container._reset=()=>{pin='';updateDots();};
-
-  // Keyboard support — only active when this numpad's page is visible
-  // Remove stale listener from a previous render of this same container
-  if(container._destroy)container._destroy();
-  function onKey(e){
-    const page=container.closest('.page');
-    if(!page||!page.classList.contains('active'))return;
-    const ae=document.activeElement;
-    const tag=ae?.tagName;
-    // Block only real text inputs; numpad div (DIV/BODY) should pass through
-    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
-    if(e.key>='0'&&e.key<='9'&&pin.length<4){pin+=e.key;updateDots();if(pin.length===4&&onComplete)onComplete(pin,()=>{pin='';updateDots();});}
-    else if(e.key==='Backspace'){e.preventDefault();pin=pin.slice(0,-1);updateDots();}
-  }
-  document.addEventListener('keydown',onKey);
-  container._destroy=()=>document.removeEventListener('keydown',onKey);
+  // Expose direct key press so external keyboard handlers can route to this numpad
+  container._pressKey=(key)=>{
+    if(key==='⌫'){pin=pin.slice(0,-1);}
+    else if(key>='0'&&key<='9'&&pin.length<4){pin+=key;}
+    updateDots();
+    if(pin.length===4&&onComplete)onComplete(pin,()=>{pin='';updateDots();});
+  };
 }
 
 // ============================================================
@@ -850,6 +841,18 @@ function buildLoginNumpad(){
       reset();window._loginPin='';
     }
   });
+  // Dedicated keyboard handler — no focus/activeElement heuristics, just works
+  if(window._loginKH)document.removeEventListener('keydown',window._loginKH);
+  window._loginKH=function(e){
+    if(!document.getElementById('login-page').classList.contains('active'))return;
+    // Let the phone field handle its own typing
+    if(document.activeElement===document.getElementById('login-phone'))return;
+    const np=document.getElementById('login-numpad');
+    if(!np||!np._pressKey)return;
+    if(e.key>='0'&&e.key<='9'){e.preventDefault();np._pressKey(e.key);}
+    else if(e.key==='Backspace'){e.preventDefault();np._pressKey('⌫');}
+  };
+  document.addEventListener('keydown',window._loginKH);
 }
 
 document.getElementById('login-btn').addEventListener('click',()=>{
@@ -1999,13 +2002,7 @@ buildLoginNumpad();
 buildNumpad('su-numpad','spd',(pin,reset)=>{window._suPin=pin;});
 document.getElementById('login-phone').addEventListener('input',function(){
   this.value=this.value.replace(/\D/g,'');
-  if(this.value.length===10){
-    this.blur();
-    // Move focus to numpad so keyboard input goes to PIN
-    const np=document.getElementById('login-numpad');
-    np.setAttribute('tabindex','-1');
-    np.focus();
-  }
+  if(this.value.length===10)this.blur();
 });
 document.getElementById('su-phone').addEventListener('input',function(){
   this.value=this.value.replace(/\D/g,'');
