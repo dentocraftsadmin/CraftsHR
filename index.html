@@ -87,11 +87,11 @@ img{max-width:100%;display:block}
 .punch-row:last-child{border-bottom:none}
 .punch-label{font-size:0.8rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
 .punch-val{font-size:1rem;font-weight:600}
-#camera-container{position:fixed;inset:0;background:#000;z-index:7000;display:none;flex-direction:column}
+#camera-container{position:fixed;inset:0;background:#000;z-index:7000;display:none;flex-direction:column;overflow:hidden}
 #camera-container.active{display:flex}
-#camera-video{width:100%;flex:1;object-fit:cover}
+#camera-video{width:100%;flex:1;object-fit:cover;min-height:0}
 #camera-canvas{display:none}
-.camera-controls{padding:20px;display:flex;gap:16px;justify-content:center;align-items:center;background:#000}
+.camera-controls{padding:24px 20px;display:flex;gap:16px;justify-content:center;align-items:center;background:#000;flex-shrink:0}
 .camera-btn{width:72px;height:72px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1.8rem;border:4px solid rgba(255,255,255,0.3)}
 .camera-close-btn{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#fff}
 .preview-container{position:fixed;inset:0;background:#000;z-index:7100;display:none;flex-direction:column}
