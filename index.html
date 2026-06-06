@@ -750,7 +750,7 @@ async function loadCache(){
     _sb.from('leaves').select('*'),
     _sb.from('app_settings').select('*').eq('id',1).maybeSingle(),
     _sb.from('shifts').select('*'),
-    _sb.from('holidays').select('*').catch(()=>({data:[]}))
+    Promise.resolve(_sb.from('holidays').select('*')).catch(()=>({data:[]}))
   ]);
   _cache.staff=(s.data||[]).map(_staffFromDB);
   _cache.punches=(p.data||[]).map(_punchFromDB);
