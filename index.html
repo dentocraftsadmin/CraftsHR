@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>CraftsHR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--primary:#1D9E75;--primary-dark:#157a5a;--primary-light:#e8f7f2;--accent:#f0a500;--danger:#e53935;--warning:#fb8c00;--success:#43a047;--text:#1a1a2e;--text-muted:#6b7280;--border:#e5e7eb;--bg:#f5f7fa;--card:#ffffff;--radius:12px;--shadow:0 2px 12px rgba(0,0,0,0.08);--transition:0.2s ease}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 button{cursor:pointer;border:none;outline:none;font-family:inherit}
 input,select,textarea{font-family:inherit;outline:none}
 a{text-decoration:none;color:inherit}
@@ -170,6 +173,25 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 /* Brand logo — swaps to white version in dark mode */
 img.brand-logo{display:block}
 [data-theme="dark"] img.brand-logo{filter:brightness(0) invert(1)}
+
+/* ---- Typography Polish ---- */
+h1,h2,h3,h4,h5{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em;line-height:1.25}
+.stat-card .stat-val{font-variant-numeric:tabular-nums;letter-spacing:-0.03em}
+.stat-card .stat-label{font-size:0.7rem;letter-spacing:0.06em;font-weight:700}
+.welcome-card .time{font-variant-numeric:tabular-nums;letter-spacing:-0.04em}
+.login-logo h1{letter-spacing:-0.03em;font-weight:800}
+.login-logo p{letter-spacing:0.01em;font-weight:500}
+.form-group label{letter-spacing:0.06em;font-size:0.72rem;font-weight:700}
+.numpad-btn{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.01em}
+.numpad-btn .sub{letter-spacing:0.12em}
+.badge{letter-spacing:0.03em;font-weight:700}
+.btn{letter-spacing:0.01em;font-weight:700}
+th{letter-spacing:0.07em}
+.tab-item{letter-spacing:0.01em;font-weight:600}
+.admin-sidebar-nav a{font-weight:600;letter-spacing:0.01em}
+.punch-label{letter-spacing:0.06em;font-size:0.72rem;font-weight:700}
+.punch-val{font-weight:700;letter-spacing:-0.01em}
+.card h3,.settings-section h3{letter-spacing:-0.02em;font-weight:800}
 
 [data-theme="dark"]{--text:#e2e8f0;--text-muted:#94a3b8;--border:#2d3748;--bg:#0f172a;--card:#1e293b;--primary-light:rgba(29,158,117,0.15);--shadow:0 2px 12px rgba(0,0,0,0.3)}
 [data-theme="dark"] .numpad-btn{background:#263144;border-color:#2d3748;color:#e2e8f0}
