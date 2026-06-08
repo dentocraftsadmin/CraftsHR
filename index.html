@@ -754,7 +754,7 @@ const _cache={staff:[],punches:[],leaves:[],appSettings:{},shifts:[],holidays:[]
 
 // ---- Mappers (DB snake_case ↔ app camelCase) ----
 function _staffFromDB(r){return{id:r.id,name:r.name,phone:r.phone,department:r.department,pin:r.pin,workingHours:r.working_hours||6.5,score:r.score||0,scoreHistory:r.score_history||[],dob:r.dob,emergencyContact:r.emergency_contact,employmentType:r.employment_type,employeeId:r.employee_id,shiftId:r.shift_id,isLocked:r.is_locked||false,joiningDate:r.joining_date,createdAt:r.created_at,status:r.status||'active'};}
-function _staffToDB(s){return{id:s.id,name:s.name,phone:s.phone,department:s.department,pin:s.pin,working_hours:s.workingHours||6.5,score:s.score||0,score_history:s.scoreHistory||[],dob:s.dob||null,emergency_contact:s.emergencyContact||null,employment_type:s.employmentType||null,employee_id:s.employeeId||null,shift_id:s.shiftId||null,is_locked:s.isLocked||false,joining_date:s.joiningDate||null,status:s.status||'active'};}
+function _staffToDB(s){const o={id:s.id,name:s.name,phone:s.phone,department:s.department,pin:s.pin,working_hours:s.workingHours||6.5,score:s.score||0,score_history:s.scoreHistory||[],dob:s.dob||null,emergency_contact:s.emergencyContact||null,employment_type:s.employmentType||null,employee_id:s.employeeId||null,shift_id:s.shiftId||null,is_locked:s.isLocked||false,joining_date:s.joiningDate||null};if(_dbHasStatusCol)o.status=s.status||'active';return o;}
 function _punchFromDB(r){return{id:r.id,staffId:r.staff_id,date:r.date,punchIn:r.punch_in,punchOut:r.punch_out,hoursWorked:r.hours_worked,dayType:r.day_type,isLate:r.is_late||false,photoIn:r.photo,photoOut:r.photo_out,locIn:r.location,locOut:r.location_out,latIn:r.lat,lngIn:r.lng,latOut:r.lat_out,lngOut:r.lng_out,isFlagged:r.is_flagged||false,flaggedOutOfOffice:r.flagged_out_of_office||false};}
 function _punchToDB(p){return{id:p.id,staff_id:p.staffId,date:p.date,punch_in:p.punchIn||null,punch_out:p.punchOut||null,hours_worked:p.hoursWorked||null,day_type:p.dayType||null,is_late:p.isLate||false,photo:p.photoIn||null,photo_out:p.photoOut||null,location:p.locIn||null,location_out:p.locOut||null,lat:p.latIn||null,lng:p.lngIn||null,lat_out:p.latOut||null,lng_out:p.lngOut||null,flagged_out_of_office:p.flaggedOutOfOffice||false,is_flagged:p.isFlagged||false};}
 function _leaveFromDB(r){return{id:r.id,staffId:r.staff_id,type:r.type,fromDate:r.from_date,toDate:r.to_date,reason:r.reason,status:r.status,appliedAt:r.applied_at};}
@@ -764,8 +764,16 @@ function _shiftToDB(s){return{id:s.id,name:s.name,start_time:s.start,end_time:s.
 function _holidayFromDB(r){return{id:r.id,name:r.name,date:r.date};}
 function _holidayToDB(h){return{id:h.id,name:h.name,date:h.date};}
 
+// ---- Schema capability flags ----
+let _dbHasStatusCol=false;
+async function detectSchemaFlags(){
+  const {error}=await _sb.from('staff').select('status').limit(1);
+  _dbHasStatusCol=!error;
+}
+
 // ---- Cache loaders ----
 async function loadCache(){
+  await detectSchemaFlags();
   const[s,p,l,a,sh,hol]=await Promise.all([
     _sb.from('staff').select('*'),
     _sb.from('punches').select('*'),
