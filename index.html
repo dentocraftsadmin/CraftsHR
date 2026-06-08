@@ -285,7 +285,7 @@ th{letter-spacing:0.07em}
 .holiday-list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
 .holiday-list-item:last-child{border-bottom:none}
 
-/* ---- Staff card layout (replaces table on mobile) ---- */
+/* ---- Staff card layout ---- */
 .staff-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px}
 .staff-card-main{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
 .staff-card-name{font-size:1rem;font-weight:700;color:var(--text)}
@@ -294,19 +294,15 @@ th{letter-spacing:0.07em}
 .staff-card-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .staff-card-actions .btn{min-height:44px;min-width:64px;font-size:0.85rem;border-radius:8px;padding:8px 14px}
 
-/* ---- FAB (Add Staff) ---- */
+/* ---- FAB ---- */
 .fab-add-staff{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));right:20px;z-index:200;width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;font-size:1.6rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(29,158,117,0.45);border:none;cursor:pointer;transition:background var(--transition),transform var(--transition)}
 .fab-add-staff:active{transform:scale(0.93);background:var(--primary-dark)}
-
-/* ---- Settings nav — scrollable with right fade ---- */
-.settings-nav{position:relative}
-.settings-nav-btn{flex-shrink:0}
 
 /* ---- Report table scroll fade ---- */
 .report-table-scroll-wrap{position:relative;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius);border:1px solid var(--border)}
 .report-table-scroll-wrap::after{content:'';position:absolute;top:0;right:0;bottom:0;width:32px;background:linear-gradient(to left,var(--card) 0%,transparent 100%);pointer-events:none;border-radius:0 var(--radius) var(--radius) 0}
 
-/* ---- Safe area for bottom tab bar ---- */
+/* ---- Safe area ---- */
 .admin-bottom-tabs{padding-bottom:env(safe-area-inset-bottom)}
 </style>
 </head>
@@ -472,10 +468,29 @@ th{letter-spacing:0.07em}
       <h3 class="fw-700 mb-3">Paid Holidays</h3>
       <div id="staff-holidays-list"></div>
     </div>
+    <!-- Leaves Tab -->
+    <div id="staff-leaves-tab" class="staff-tab-content hidden">
+      <h3 class="fw-700 mb-3">My Leaves</h3>
+      <div class="card mb-3">
+        <h4 style="margin-top:0;margin-bottom:12px">Apply for Leave</h4>
+        <div class="form-group"><label>Leave Type</label><select class="form-input" id="sl-type">
+          <option>Sick Leave</option><option>Casual Leave</option><option>Earned Leave</option><option>Emergency Leave</option><option>Other</option>
+        </select></div>
+        <div class="flex gap-2">
+          <div class="form-group flex-1"><label>From Date</label><input type="date" class="form-input" id="sl-from"></div>
+          <div class="form-group flex-1"><label>To Date</label><input type="date" class="form-input" id="sl-to"></div>
+        </div>
+        <div class="form-group"><label>Reason</label><textarea class="form-input" id="sl-reason" rows="3" placeholder="Brief reason for leave…" style="resize:none"></textarea></div>
+        <button class="btn btn-primary w-full" onclick="submitStaffLeave()">Submit Leave Request</button>
+      </div>
+      <h4 class="fw-700 mb-2">My Applications</h4>
+      <div id="staff-leaves-list"></div>
+    </div>
   </div>
   <div class="tab-bar" id="staff-tab-bar">
     <div class="tab-item active" data-tab="home" onclick="switchStaffTab('home')"><span class="tab-icon">🏠</span>Home</div>
     <div class="tab-item" data-tab="att" onclick="switchStaffTab('att')"><span class="tab-icon">📋</span>Attendance</div>
+    <div class="tab-item" data-tab="leaves" onclick="switchStaffTab('leaves')"><span class="tab-icon">📅</span>Leaves</div>
     <div class="tab-item" data-tab="holidays" onclick="switchStaffTab('holidays')"><span class="tab-icon">🗓️</span>Holidays</div>
   </div>
 </div>
@@ -1261,6 +1276,7 @@ async function _checkLocGate(){
     ()=>{
       _hideLocGate();
       if(camState==='denied'){
+        // Camera was blocked in settings
         const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
         document.getElementById('loc-gate-icon').textContent='📷';
         document.getElementById('loc-gate-title').textContent='Camera Access Denied';
@@ -1272,6 +1288,7 @@ async function _checkLocGate(){
         document.getElementById('loc-gate').classList.add('active');
         return;
       }
+      // Camera "prompt" (Allow Once expired) or first-time → show rationale
       if(camState==='prompt'||!localStorage.getItem('hrp_perms_ok')){showPermissionRationale();}else{openCamera();}
     },
     err=>{
@@ -1542,6 +1559,53 @@ function switchStaffTab(tab){
   document.getElementById(`staff-${tab}-tab`).classList.remove('hidden');
   document.querySelector(`#staff-tab-bar [data-tab="${tab}"]`).classList.add('active');
   if(tab==='holidays')renderStaffHolidays();
+  if(tab==='leaves')renderStaffLeaves();
+}
+
+function renderStaffLeaves(){
+  const sess=getSession();if(!sess)return;
+  const leaves=getLeaves().filter(l=>l.staffId===sess.staffId).sort((a,b)=>new Date(b.appliedAt)-new Date(a.appliedAt));
+  const container=document.getElementById('staff-leaves-list');
+  if(!container)return;
+  if(!leaves.length){container.innerHTML='<div class="card text-sm text-muted" style="text-align:center;padding:24px">No leave applications yet</div>';return;}
+  container.innerHTML=leaves.map(l=>{
+    const days=daysBetween(l.fromDate,l.toDate);
+    const badgeClass={Pending:'badge-pending',Approved:'badge-approved',Rejected:'badge-absent'}[l.status]||'badge-pending';
+    return`<div class="leave-card">
+      <div class="leave-header">
+        <div>
+          <div class="fw-600">${l.type}</div>
+          <div class="text-sm text-muted">${fmtDate(l.fromDate)} — ${fmtDate(l.toDate)} (${days} day${days!==1?'s':''})</div>
+          <div class="text-sm mt-1">${l.reason}</div>
+          ${l.adminNote?`<div class="text-sm mt-1" style="color:var(--primary)">Admin: ${l.adminNote}</div>`:''}
+        </div>
+        <span class="badge ${badgeClass}">${l.status}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function submitStaffLeave(){
+  const sess=getSession();if(!sess)return;
+  const type=document.getElementById('sl-type')?.value;
+  const from=document.getElementById('sl-from')?.value;
+  const to=document.getElementById('sl-to')?.value;
+  const reason=document.getElementById('sl-reason')?.value?.trim();
+  if(!from||!to){toast('Select both from and to dates','error');return;}
+  if(from>to){toast('"From" date must be before "To" date','error');return;}
+  if(!reason){toast('Please enter a reason','error');return;}
+  const arr=getLeaves();
+  // Prevent duplicate pending leave for same period
+  const overlap=arr.find(l=>l.staffId===sess.staffId&&l.status==='Pending'&&!(l.toDate<from||l.fromDate>to));
+  if(overlap){toast('You already have a pending leave request for this period','warning');return;}
+  arr.push({id:genId(),staffId:sess.staffId,type,fromDate:from,toDate:to,reason,status:'Pending',adminNote:'',appliedAt:new Date().toISOString()});
+  setLeaves(arr);
+  toast('Leave request submitted! Awaiting admin approval.','success');
+  // Reset form
+  document.getElementById('sl-from').value='';
+  document.getElementById('sl-to').value='';
+  document.getElementById('sl-reason').value='';
+  renderStaffLeaves();
 }
 
 function renderStaffHolidays(){
@@ -1573,7 +1637,9 @@ function renderStaffAttTable(staffId){
     const p=punches.find(x=>x.date===date);
     const dayName=new Date(date).toLocaleDateString('en-IN',{weekday:'short'});
     const holiday=getHolidays().find(h=>h.date===date);
+    const dow=new Date(date).getDay();
     if(holiday)return`<tr><td>${dayName}, ${date}</td><td colspan="4"><span class="badge badge-holiday">${holiday.name}</span></td></tr>`;
+    if(dow===0)return`<tr style="opacity:0.5"><td>${dayName}, ${date}</td><td colspan="4" class="text-muted text-sm">Sunday</td></tr>`;
     if(!p||!p.punchIn)return`<tr><td>${dayName}, ${date}</td><td colspan="4" class="text-muted text-sm">Absent</td></tr>`;
     const dtype=p.dayType||'—';
     return`<tr>
@@ -2267,7 +2333,7 @@ function changeAdminPinPanel(){
   if(cur!==getAdminPin()){toast('Current PIN incorrect','error');return;}
   if(!/^\d{4}$/.test(nw)){toast('PIN must be 4 digits','error');return;}
   if(nw!==cf){toast('PINs do not match','error');return;}
-  localStorage.setItem(ADMIN_PIN_KEY,nw);toast('PIN updated','success');
+  localStorage.setItem(ADMIN_PIN_KEY,nw);const _ps=getAppSettings();_ps.adminPin=nw;setAppSettings(_ps);toast('PIN updated','success');
   document.getElementById('set-cur-pin2').value='';document.getElementById('set-new-pin2').value='';document.getElementById('set-confirm-pin2').value='';
 }
 function saveStaffProfile(){
