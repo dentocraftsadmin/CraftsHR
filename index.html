@@ -2503,7 +2503,7 @@ function detectAdminLocation(){
   if(btn){btn.disabled=true;btn.textContent='⏳ Detecting...';}
   let _fired=false;
   const done=()=>{if(!_fired){_fired=true;renderSettingsSection('app');}};
-  const fallback=setTimeout(()=>{if(!_fired){done();toast('Location blocked — tap the browser shield/lock icon and allow Location, then try again','error');}},16000);
+  const fallback=setTimeout(()=>{if(!_fired){done();toast('Location not available — check that Android Location (GPS) is turned on in your phone settings','error');}},8000);
   navigator.geolocation.getCurrentPosition(async pos=>{
     clearTimeout(fallback);
     const lat=pos.coords.latitude.toFixed(6),lng=pos.coords.longitude.toFixed(6);
