@@ -1626,12 +1626,14 @@ function renderAdminDashboard(){
   const punchedIn=punches.filter(p=>p.punchIn&&!p.punchOut).length;
   const punchedOut=punches.filter(p=>p.punchOut).length;
   const onLeave=leaves.length;
+  const notIn=Math.max(0,staff.length-punchedIn-punchedOut-onLeave);
+  const appS=getAppSettings();const[sh,sm]=(appS.workStartTime||'09:30').split(':').map(Number);const grace=appS.graceMinutes||0;const now=new Date();const isPastGrace=(now.getHours()*60+now.getMinutes())>(sh*60+sm+grace);
   document.getElementById('admin-stats-grid').innerHTML=`
-    <div class="stat-card"><div class="stat-val">${staff.length}</div><div class="stat-label">Total Staff</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--primary)">${punchedIn}</div><div class="stat-label">Working Now</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--text-muted)">${punchedOut}</div><div class="stat-label">Punched Out</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--warning)">${onLeave}</div><div class="stat-label">On Leave</div></div>
-    ${(()=>{const notIn=Math.max(0,staff.length-punchedIn-punchedOut-onLeave);const appS=getAppSettings();const[sh,sm]=(appS.workStartTime||'09:30').split(':').map(Number);const grace=appS.graceMinutes||0;const now=new Date();const thresholdMins=sh*60+sm+grace;const nowMins=now.getHours()*60+now.getMinutes();const isPastGrace=nowMins>thresholdMins;return`<div class="stat-card"><div class="stat-val" style="color:${isPastGrace&&notIn>0?'var(--danger)':'var(--text)'}">${notIn}</div><div class="stat-label">Not Yet In</div></div>`;})()}`;
+    <div class="stat-card" onclick="showDashboardGroup('total')" style="cursor:pointer"><div class="stat-val">${staff.length}</div><div class="stat-label">Total Staff</div></div>
+    <div class="stat-card" onclick="showDashboardGroup('in')" style="cursor:pointer"><div class="stat-val" style="color:var(--primary)">${punchedIn}</div><div class="stat-label">Working Now</div></div>
+    <div class="stat-card" onclick="showDashboardGroup('out')" style="cursor:pointer"><div class="stat-val" style="color:var(--text-muted)">${punchedOut}</div><div class="stat-label">Punched Out</div></div>
+    <div class="stat-card" onclick="showDashboardGroup('leave')" style="cursor:pointer"><div class="stat-val" style="color:var(--warning)">${onLeave}</div><div class="stat-label">On Leave</div></div>
+    <div class="stat-card" onclick="showDashboardGroup('absent')" style="cursor:pointer"><div class="stat-val" style="color:${isPastGrace&&notIn>0?'var(--danger)':'var(--text)'}">${notIn}</div><div class="stat-label">Not Yet In</div></div>`;
   const allTodayPunches=getPunches().filter(p=>p.date===today).sort((a,b)=>new Date(b.punchIn)-new Date(a.punchIn));
   const feed=document.getElementById('admin-feed');
   if(!allTodayPunches.length){feed.innerHTML='<div class="card text-sm text-muted" style="text-align:center;padding:32px">No punches today yet</div>';return;}
@@ -1648,6 +1650,49 @@ function renderAdminDashboard(){
       <span class="badge badge-${badge}">${dtype}</span>
     </div>`;
   }).join('');
+}
+
+function showDashboardGroup(type){
+  const today=todayStr(),allStaff=getStaff();
+  const todayPunches=getPunches().filter(p=>p.date===today);
+  const todayLeaves=getLeaves().filter(l=>l.status==='Approved'&&l.fromDate<=today&&l.toDate>=today);
+  const punchedInList=todayPunches.filter(p=>p.punchIn&&!p.punchOut);
+  const punchedOutList=todayPunches.filter(p=>p.punchOut);
+  const punchedInIds=new Set(punchedInList.map(p=>p.staffId));
+  const punchedOutIds=new Set(punchedOutList.map(p=>p.staffId));
+  const onLeaveIds=new Set(todayLeaves.map(l=>l.staffId));
+  const row=(s,sub)=>`<div class="feed-item" style="cursor:pointer" onclick="viewStaffDetail('${s.id}')">
+    <div style="width:40px;height:40px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">${getInitials(s.name)}</div>
+    <div style="flex:1;min-width:0">
+      <div class="fw-600 truncate">${s.name}</div>
+      <div class="text-sm text-muted truncate">${s.department}${sub?' · '+sub:''}</div>
+    </div>
+  </div>`;
+  const empty=msg=>`<div class="text-muted text-sm" style="text-align:center;padding:32px">${msg}</div>`;
+  let title,html;
+  if(type==='total'){
+    title=`All Staff (${allStaff.length})`;
+    html=allStaff.length?allStaff.map(s=>row(s,'')).join(''):empty('No staff enrolled yet');
+  }else if(type==='in'){
+    const list=punchedInList.map(p=>({s:allStaff.find(x=>x.id===p.staffId),p})).filter(x=>x.s);
+    title=`Working Now (${list.length})`;
+    html=list.length?list.map(({s,p})=>row(s,`In at ${fmtTime(p.punchIn)}${p.flaggedOutOfOffice?' ⚠️':''}`)).join(''):empty('Nobody has punched in yet today');
+  }else if(type==='out'){
+    const list=punchedOutList.map(p=>({s:allStaff.find(x=>x.id===p.staffId),p})).filter(x=>x.s);
+    title=`Punched Out (${list.length})`;
+    html=list.length?list.map(({s,p})=>row(s,`${p.hoursWorked?.toFixed(1)||'?'} hrs · Out ${fmtTime(p.punchOut)}`)).join(''):empty('Nobody has punched out yet');
+  }else if(type==='leave'){
+    const list=todayLeaves.map(l=>({s:allStaff.find(x=>x.id===l.staffId),l})).filter(x=>x.s);
+    title=`On Leave Today (${list.length})`;
+    html=list.length?list.map(({s,l})=>row(s,l.type)).join(''):empty('Nobody is on approved leave today');
+  }else if(type==='absent'){
+    const list=allStaff.filter(s=>!punchedInIds.has(s.id)&&!punchedOutIds.has(s.id)&&!onLeaveIds.has(s.id));
+    title=`Not Yet In (${list.length})`;
+    html=list.length?list.map(s=>row(s,'')).join(''):empty('Everyone is accounted for ✅');
+  }
+  document.getElementById('detail-modal-title').textContent=title;
+  document.getElementById('detail-modal-body').innerHTML=`<div style="margin:0 -4px">${html}</div>`;
+  openModal('detail-modal');
 }
 
 function showPunchDetail(punchId){
