@@ -2509,8 +2509,8 @@ async function exportPhotosZip(){
   let count=0;
   for(const p of withPhotos){
     const sName=((staffMap[p.staffId]?.name)||p.staffId).replace(/[^a-z0-9]/gi,'_');
-    if(p.photoIn&&p.photoIn.startsWith('http')){try{const r=await fetch(p.photoIn);const b=await r.blob();zip.file(`${sName}/${p.date}_punch_in.jpg`,b);count++;}catch(e){}}
-    if(p.photoOut&&p.photoOut.startsWith('http')){try{const r=await fetch(p.photoOut);const b=await r.blob();zip.file(`${sName}/${p.date}_punch_out.jpg`,b);count++;}catch(e){}}
+    if(p.photoIn&&p.photoIn.startsWith('http')){try{const r=await fetch(p.photoIn);const b=await r.blob();const tIn=p.punchIn?new Date(p.punchIn).toTimeString().slice(0,5).replace(':',''):'0000';zip.file(`${sName}/${p.date}_${tIn}_punch_in.jpg`,b);count++;}catch(e){}}
+    if(p.photoOut&&p.photoOut.startsWith('http')){try{const r=await fetch(p.photoOut);const b=await r.blob();const tOut=p.punchOut?new Date(p.punchOut).toTimeString().slice(0,5).replace(':',''):'0000';zip.file(`${sName}/${p.date}_${tOut}_punch_out.jpg`,b);count++;}catch(e){}}
   }
   if(!count){toast('No photos could be downloaded','error');return;}
   toast(`Zipping ${count} photos…`,'info',10000);
