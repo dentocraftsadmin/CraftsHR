@@ -2501,8 +2501,11 @@ function detectAdminLocation(){
   if(!navigator.geolocation){toast('Geolocation not supported','error');return;}
   const btn=document.querySelector('[onclick="detectAdminLocation()"]');
   if(btn){btn.disabled=true;btn.textContent='⏳ Detecting...';}
-  const done=()=>{renderSettingsSection('app');};
+  let _fired=false;
+  const done=()=>{if(!_fired){_fired=true;renderSettingsSection('app');}};
+  const fallback=setTimeout(()=>{if(!_fired){done();toast('Location blocked — tap the browser shield/lock icon and allow Location, then try again','error');}},16000);
   navigator.geolocation.getCurrentPosition(async pos=>{
+    clearTimeout(fallback);
     const lat=pos.coords.latitude.toFixed(6),lng=pos.coords.longitude.toFixed(6);
     const s=getAppSettings();s.officeLat=lat;s.officeLng=lng;setAppSettings(s);
     done();
@@ -2516,7 +2519,7 @@ function detectAdminLocation(){
       if(preview&&addrEl){addrEl.textContent=addr;preview.style.display='block';}
     }catch(e){}
   },err=>{
-    done();
+    clearTimeout(fallback);done();
     const msg={1:'Location permission denied — allow location in browser settings then try again',2:'Location unavailable on this device',3:'Timed out — try again or enter coordinates manually'}[err.code]||'Could not get location';
     toast(msg,'error');
   },{enableHighAccuracy:false,timeout:15000,maximumAge:60000});
