@@ -2457,10 +2457,19 @@ function buildAppSection(){
     <div class="form-group"><label>Latitude</label><input type="number" class="form-input" id="as-lat" value="${s.officeLat||''}" placeholder="e.g. 19.0760" step="0.0001" onchange="saveAppSetting('officeLat',this.value)"></div>
     <div class="form-group"><label>Longitude</label><input type="number" class="form-input" id="as-lng" value="${s.officeLng||''}" placeholder="e.g. 72.8777" step="0.0001" onchange="saveAppSetting('officeLng',this.value)"></div>
     <div class="form-group"><label>Radius (meters)</label><input type="number" class="form-input" value="${s.officeRadius||200}" min="50" max="2000" onchange="saveAppSetting('officeRadius',parseInt(this.value))"></div>
-    <button class="btn btn-outline mb-3" onclick="detectAdminLocation()">📍 Detect My Location</button>
-    <div id="as-location-preview" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:0.85rem;color:var(--text-muted)">
-      <div style="font-weight:600;color:var(--text);margin-bottom:2px">📍 Detected Address</div>
-      <div id="as-location-address"></div>
+    <div class="flex gap-2 mb-3">
+      <button class="btn btn-outline" style="flex:1" onclick="detectAdminLocation()">📍 Detect My Location</button>
+    </div>
+    <div class="form-group mb-3">
+      <label>Or search by address</label>
+      <div class="flex gap-2">
+        <input class="form-input" id="as-addr-search" placeholder="e.g. DentoCrafts, Mumbai" style="flex:1">
+        <button class="btn btn-primary" style="white-space:nowrap" onclick="searchOfficeAddress()">Search</button>
+      </div>
+    </div>
+    <div id="as-location-preview" style="display:${(s.officeLat&&s.officeLng)?'block':'none'};background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:0.85rem;color:var(--text-muted)">
+      <div style="font-weight:600;color:var(--text);margin-bottom:2px">📍 Office Address</div>
+      <div id="as-location-address">${s.officeAddress||''}</div>
     </div>
     <h4>Attendance Rules</h4>
     <div class="form-group"><label>Work Start Time</label><input type="time" class="form-input" value="${s.workStartTime||'09:30'}" onchange="saveAppSetting('workStartTime',this.value)"></div>
@@ -2514,15 +2523,30 @@ function detectAdminLocation(){
       const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
       const d=await r.json();
       const addr=d.display_name||`${lat}, ${lng}`;
-      const preview=document.getElementById('as-location-preview');
-      const addrEl=document.getElementById('as-location-address');
-      if(preview&&addrEl){addrEl.textContent=addr;preview.style.display='block';}
+      const s2=getAppSettings();s2.officeAddress=addr;setAppSettings(s2);
+      renderSettingsSection('app');
     }catch(e){}
   },err=>{
     clearTimeout(fallback);done();
     const msg={1:'Location permission denied — allow location in browser settings then try again',2:'Location unavailable on this device',3:'Timed out — try again or enter coordinates manually'}[err.code]||'Could not get location';
     toast(msg,'error');
   },{enableHighAccuracy:false,timeout:15000,maximumAge:60000});
+}
+
+async function searchOfficeAddress(){
+  const q=document.getElementById('as-addr-search')?.value?.trim();
+  if(!q){toast('Enter an address to search','error');return;}
+  const btn=document.querySelector('[onclick="searchOfficeAddress()"]');
+  if(btn){btn.disabled=true;btn.textContent='Searching...';}
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`);
+    const d=await r.json();
+    if(!d||!d.length){toast('Address not found — try a more specific search','error');if(btn){btn.disabled=false;btn.textContent='Search';}return;}
+    const lat=parseFloat(d[0].lat).toFixed(6),lng=parseFloat(d[0].lon).toFixed(6),addr=d[0].display_name;
+    const s=getAppSettings();s.officeLat=lat;s.officeLng=lng;s.officeAddress=addr;setAppSettings(s);
+    renderSettingsSection('app');
+    toast(`Office set: ${addr.slice(0,60)}...`,'success');
+  }catch(e){toast('Search failed — check your connection','error');if(btn){btn.disabled=false;btn.textContent='Search';}}
 }
 
 // ---- Holidays Settings ----
