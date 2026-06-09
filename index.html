@@ -89,7 +89,7 @@ img{max-width:100%;display:block}
 .punch-val{font-size:1rem;font-weight:600}
 #camera-container{position:fixed;inset:0;background:#000;z-index:7000;display:none;flex-direction:column;overflow:hidden}
 #camera-container.active{display:flex}
-#camera-video{width:100%;flex:1;object-fit:cover;min-height:0}
+#camera-video{width:100%;flex:1;object-fit:cover;min-height:0;transform:scaleX(-1)}
 #camera-canvas{display:none}
 .camera-controls{padding:24px 20px;display:flex;gap:16px;justify-content:center;align-items:center;background:#000;flex-shrink:0}
 .camera-btn{width:72px;height:72px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1.8rem;border:4px solid rgba(255,255,255,0.3)}
@@ -1407,7 +1407,7 @@ document.getElementById('camera-capture').addEventListener('click',()=>{
   const video=document.getElementById('camera-video'),canvas=document.getElementById('camera-canvas');
   const maxW=640;let w=video.videoWidth,h=video.videoHeight;
   if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
-  canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(video,0,0,w,h);
+  canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');ctx.translate(w,0);ctx.scale(-1,1);ctx.drawImage(video,0,0,w,h);
   capturedPhoto=canvas.toDataURL('image/jpeg',0.6);closeCamera();showPreview(capturedPhoto);startLocationFetch();
 });
 
