@@ -2469,31 +2469,25 @@ function buildAppSection(){
     <div id="office-locations-list" class="mb-3">
       ${(s.officeLocations||[]).map(o=>`
         <div class="card mb-2" style="padding:12px 14px">
-          <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:6px">
             <div class="fw-600">${o.name}</div>
             <button class="btn btn-danger text-sm" style="padding:4px 10px" onclick="removeOfficeLocation('${o.id}')">Remove</button>
           </div>
-          <div class="text-sm text-muted">📍 ${o.lat}, ${o.lng}</div>
+          ${o.address?`<div class="text-sm text-muted mb-1">${o.address}</div>`:`<div class="text-sm text-muted mb-1">${o.lat}, ${o.lng}</div>`}
+          <a href="https://www.google.com/maps?q=${o.lat},${o.lng}" target="_blank" class="btn btn-outline text-sm" style="padding:5px 12px;display:inline-block;margin-top:4px">🗺️ Open in Google Maps</a>
         </div>`).join('')}
       ${!(s.officeLocations||[]).length?'<div class="text-sm text-muted mb-2">No offices added yet.</div>':''}
     </div>
     <div class="card mb-3" style="padding:14px">
       <div class="fw-600 mb-2">Add Office</div>
       <div class="form-group"><label>Office Name</label><input class="form-input" id="new-office-name" placeholder="e.g. Main Lab, CBCT Centre" autocapitalize="words"></div>
-      <div class="form-group mb-2">
-        <label>Search by area / street / landmark</label>
-        <div class="flex gap-2">
-          <input class="form-input" id="as-addr-search" placeholder="e.g. Gokhale Rd Dadar Mumbai" style="flex:1">
-          <button class="btn btn-outline" style="white-space:nowrap" onclick="searchOfficeAddress()">Search</button>
-        </div>
-        <div id="as-addr-results" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden"></div>
-      </div>
       <div class="flex gap-2 mb-2">
-        <div class="form-group" style="flex:1;margin-bottom:0"><label>Latitude</label><input type="number" class="form-input" id="as-lat" placeholder="19.0146" step="0.000001"></div>
-        <div class="form-group" style="flex:1;margin-bottom:0"><label>Longitude</label><input type="number" class="form-input" id="as-lng" placeholder="72.8338" step="0.000001"></div>
+        <div class="form-group" style="flex:1;margin-bottom:0"><label>Latitude</label><input type="number" class="form-input" id="as-lat" placeholder="19.0146" step="0.000001" onchange="previewOfficeCoords()"></div>
+        <div class="form-group" style="flex:1;margin-bottom:0"><label>Longitude</label><input type="number" class="form-input" id="as-lng" placeholder="72.8338" step="0.000001" onchange="previewOfficeCoords()"></div>
       </div>
+      <div id="as-coord-preview" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.82rem;color:var(--text-muted)"></div>
       <div class="flex gap-2">
-        <button class="btn btn-outline" style="flex:1" onclick="detectAdminLocation()">📍 Detect Location</button>
+        <button class="btn btn-outline" style="flex:1" onclick="detectAdminLocation()">📍 Detect</button>
         <button class="btn btn-primary" style="flex:1" onclick="addOfficeLocation()">+ Add Office</button>
       </div>
     </div>
@@ -2544,7 +2538,8 @@ function detectAdminLocation(){
     const lat=pos.coords.latitude.toFixed(6),lng=pos.coords.longitude.toFixed(6);
     const latEl=document.getElementById('as-lat'),lngEl=document.getElementById('as-lng');
     if(latEl)latEl.value=lat;if(lngEl)lngEl.value=lng;
-    toast(`Got location: ${lat}, ${lng} — enter office name and tap + Add Office`,'success');
+    previewOfficeCoords();
+    toast(`Got location — enter office name and tap + Add Office`,'success');
   },err=>{
     clearTimeout(fallback);reset();
     const msg={1:'Location permission denied',2:'Location unavailable',3:'Timed out — enter coordinates manually'}[err.code]||'Could not get location';
@@ -2552,50 +2547,39 @@ function detectAdminLocation(){
   },{enableHighAccuracy:false,timeout:15000,maximumAge:60000});
 }
 
-async function searchOfficeAddress(){
-  const q=document.getElementById('as-addr-search')?.value?.trim();
-  if(!q){toast('Enter an area or street to search','error');return;}
-  const btn=document.querySelector('[onclick="searchOfficeAddress()"]');
-  if(btn){btn.disabled=true;btn.textContent='Searching...';}
-  const resultsEl=document.getElementById('as-addr-results');
-  try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1`);
-    const d=await r.json();
-    if(btn){btn.disabled=false;btn.textContent='Search';}
-    if(!d||!d.length){
-      if(resultsEl){resultsEl.style.display='block';resultsEl.innerHTML=`<div style="padding:12px;color:var(--text-muted);font-size:0.85rem">No results — try searching your area or street name (e.g. "Andheri East Mumbai")</div>`;}
-      return;
-    }
-    if(resultsEl){
-      resultsEl.style.display='block';
-      resultsEl.innerHTML=d.map((item,i)=>{
-        const name=item.display_name;
-        const short=name.length>80?name.slice(0,80)+'…':name;
-        return`<div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:0.85rem;${i===d.length-1?'border-bottom:none':''}" onclick="pickOfficeLocation('${item.lat}','${item.lon}',${JSON.stringify(name).replace(/'/g,"\\'")})">${short}</div>`;
-      }).join('');
-    }
-  }catch(e){if(btn){btn.disabled=false;btn.textContent='Search';}toast('Search failed — check your connection','error');}
-}
-function pickOfficeLocation(lat,lng,addr){
-  const latEl=document.getElementById('as-lat'),lngEl=document.getElementById('as-lng'),nameEl=document.getElementById('new-office-name');
-  if(latEl)latEl.value=parseFloat(lat).toFixed(6);
-  if(lngEl)lngEl.value=parseFloat(lng).toFixed(6);
-  if(nameEl&&!nameEl.value)nameEl.value=addr.split(',')[0];
-  const res=document.getElementById('as-addr-results');if(res)res.style.display='none';
-  toast('Location selected — enter office name and tap + Add Office','info');
-}
-function addOfficeLocation(){
+async function addOfficeLocation(){
   const name=document.getElementById('new-office-name')?.value?.trim();
   const lat=document.getElementById('as-lat')?.value?.trim();
   const lng=document.getElementById('as-lng')?.value?.trim();
   if(!name){toast('Enter an office name','error');return;}
-  if(!lat||!lng){toast('Enter or detect coordinates first','error');return;}
+  if(!lat||!lng){toast('Enter coordinates first','error');return;}
+  const btn=document.querySelector('[onclick="addOfficeLocation()"]');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  let address='';
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    const d=await r.json();
+    address=d.display_name||'';
+  }catch(e){}
   const s=getAppSettings();
   const locs=s.officeLocations||[];
-  locs.push({id:genId(),name,lat:parseFloat(lat).toFixed(6),lng:parseFloat(lng).toFixed(6)});
+  locs.push({id:genId(),name,lat:parseFloat(lat).toFixed(6),lng:parseFloat(lng).toFixed(6),address});
   s.officeLocations=locs;setAppSettings(s);
   renderSettingsSection('app');
   toast(`${name} added!`,'success');
+}
+async function previewOfficeCoords(){
+  const lat=document.getElementById('as-lat')?.value?.trim();
+  const lng=document.getElementById('as-lng')?.value?.trim();
+  const preview=document.getElementById('as-coord-preview');
+  if(!preview||!lat||!lng)return;
+  preview.style.display='block';preview.textContent='Looking up address...';
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    const d=await r.json();
+    const addr=d.display_name||`${lat}, ${lng}`;
+    preview.innerHTML=`📍 ${addr} &nbsp;<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:var(--accent)">Open in Maps ↗</a>`;
+  }catch(e){preview.textContent=`${lat}, ${lng}`;}
 }
 function removeOfficeLocation(id){
   const s=getAppSettings();
