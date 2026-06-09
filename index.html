@@ -2557,7 +2557,8 @@ async function addOfficeLocation(){
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   let address='';
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej('timeout'),4000));
+    const r=await Promise.race([fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`),timeout]);
     const d=await r.json();
     address=d.display_name||'';
   }catch(e){}
@@ -2575,7 +2576,8 @@ async function previewOfficeCoords(){
   if(!preview||!lat||!lng)return;
   preview.style.display='block';preview.textContent='Looking up address...';
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej('timeout'),4000));
+    const r=await Promise.race([fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`),timeout]);
     const d=await r.json();
     const addr=d.display_name||`${lat}, ${lng}`;
     preview.innerHTML=`📍 ${addr} &nbsp;<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:var(--accent)">Open in Maps ↗</a>`;
