@@ -1909,7 +1909,7 @@ function renderStaffTable(){
       <div class="staff-card-main">
         <div>
           <div class="staff-card-name">${s.name}${s.isLocked?'&nbsp;<span class="badge badge-absent" style="font-size:0.65rem">Locked</span>':''}</div>
-          <div class="staff-card-dept">${s.department}${s.officeId?(' · <span style="color:var(--primary)">🏢 '+( getOfficeLocations().find(o=>o.id===s.officeId)?.name||'')+'</span>'):''}  </div>
+          <div class="staff-card-dept">${s.department}${(()=>{const offices=getOfficeLocations();if(!offices.length)return'';const o=offices.find(x=>x.id===s.officeId);return' · <span style="color:'+(o?'var(--primary)':'var(--text-muted)')+'">🏢 '+(o?o.name:'No office')+'</span>';})()}</div>
         </div>
         <div class="stars-input" data-staff="${s.id}" style="flex-shrink:0">
           ${[1,2,3,4,5].map(i=>`<span class="star ${(s.score||0)>=i?'on':''}" data-val="${i}">★</span>`).join('')}
@@ -2030,7 +2030,7 @@ function viewStaffDetail(staffId){
     <div class="card mb-3">
       <div class="punch-row"><span class="punch-label">Phone</span><span>${s.phone}</span></div>
       <div class="punch-row"><span class="punch-label">Department</span><span>${s.department}</span></div>
-      ${s.officeId?`<div class="punch-row"><span class="punch-label">Office</span><span>🏢 ${getOfficeLocations().find(o=>o.id===s.officeId)?.name||'—'}</span></div>`:''}
+      ${(()=>{const offices=getOfficeLocations();if(!offices.length)return'';const assigned=offices.find(o=>o.id===s.officeId);return`<div class="punch-row"><span class="punch-label">Office</span><span><select style="border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:0.85rem;background:var(--bg);color:var(--text)" onchange="assignStaffOffice('${s.id}',this.value);this.closest('.punch-row').querySelector('span:last-child select').style.borderColor='var(--primary)'">${offices.map(o=>`<option value="${o.id}"${s.officeId===o.id?' selected':''}>${o.name}</option>`).join('')}<option value=""${!s.officeId?' selected':''}>Not assigned</option></select></span></div>`;})()}
       <div class="punch-row"><span class="punch-label">Joined</span><span>${fmtDate(s.joiningDate||s.createdAt)}</span></div>
       ${s.dob?`<div class="punch-row"><span class="punch-label">Birthday</span><span>${fmtDate(s.dob)}</span></div>`:''}
       <div class="punch-row"><span class="punch-label">Score</span><span>${renderStars(s.score||0)} (${s.score||0}/5)</span></div>
