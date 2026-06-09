@@ -334,7 +334,7 @@ th{letter-spacing:0.07em}
     </div>
 
     <!-- Step 2: PIN dots (hidden until phone done) -->
-    <div class="form-group hidden" id="login-pin-group">
+    <div class="form-group" id="login-pin-group" style="visibility:hidden;margin-bottom:0;transition:visibility 0s">
       <label>PIN</label>
       <div class="pin-display" id="login-pin-display">
         <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
@@ -1075,11 +1075,11 @@ function _loginUpdateDisplay(){
   // Show/hide PIN section
   const pinGroup=document.getElementById('login-pin-group');
   if(_loginState==='pin'){
-    pinGroup.classList.remove('hidden');
+    pinGroup.style.visibility='visible';
     document.getElementById('login-phone-display').style.borderColor='var(--border)';
     document.getElementById('login-hint').textContent='Enter your 4-digit PIN.';
   } else {
-    pinGroup.classList.add('hidden');
+    pinGroup.style.visibility='hidden';
     document.getElementById('login-hint').textContent='Tap a number to begin entering your mobile number.';
   }
   document.getElementById('login-phone-error').classList.add('hidden');
